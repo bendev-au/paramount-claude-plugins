@@ -32,10 +32,59 @@ export function createVaultRepo() {
   mkdirSync(join(work, "outputs"), { recursive: true });
 
   writeFileSync(join(work, "CLAUDE.md"), "# Fixture vault\n\n## Query\n\nAnswer with citations.\n");
-  writeFileSync(join(work, "wiki", "concepts", "example-page.md"),
-    "---\ntitle: Example Page\naliases:\n  - Example Page\ntype: concept\ntags:\n  - type/concept\n" +
-    "summary: A page that exists so the sync tests have something to find.\nupdated: 2026-08-13\n" +
-    "status: current\n---\n\n# Example Page\n\nBody text mentioning a Fixture Term.\n");
+
+  // The fixture reproduces the real vault's *shapes*, not its content — this repository is public.
+  // Each page below exists to exercise one retrieval property.
+  const page = (dir, slug, front, body) =>
+    writeFileSync(join(work, "wiki", dir, `${slug}.md`), `---\n${front}\n---\n\n${body}\n`);
+  mkdirSync(join(work, "wiki", "processes"), { recursive: true });
+
+  page("concepts", "example-page",
+    "title: Example Page\naliases:\n  - Example Page\ntype: concept\ntags:\n  - type/concept\n" +
+    "summary: A page that exists so the sync tests have something to find.\n" +
+    "updated: 2026-08-13\nstatus: current",
+    "# Example Page\n\nBody text mentioning a Fixture Term.");
+
+  // Owns the definition, and says the term plainly on one line.
+  page("concepts", "glossary",
+    "title: Glossary\naliases:\n  - Glossary\ntype: concept\ntags:\n  - type/concept\n" +
+    "summary: Short definitions of the acronyms used across the wiki.\n" +
+    "updated: 2026-08-13\nstatus: current",
+    "# Glossary\n\n| Term | Meaning |\n|---|---|\n" +
+    "| **BSP** | Behaviour Support Plan — plain-language notes for a fixture term. |");
+
+  // The critical one: the term is split across a line break, so a line-based scan misses it and
+  // only whitespace-normalised matching finds it. This is the real vault's own recall bug.
+  page("concepts", "restraint-review",
+    "title: Restraint Review\naliases:\n  - Restraint Review\ntype: concept\n" +
+    "tags:\n  - type/concept\nsummary: When an environmental restraint has to be reviewed.\n" +
+    "updated: 2026-08-13\nstatus: current",
+    "# Restraint Review\n\nWhere a door lock is considered an environmental restraint we review\n" +
+    "the Behaviour Support\nPlan before anything else changes.");
+
+  page("processes", "tenancy-matching",
+    "title: Tenancy Matching\naliases:\n  - Tenancy Matching\ntype: process\n" +
+    "tags:\n  - type/process\nsummary: Matching a participant to a vacancy.\n" +
+    "updated: 2026-08-13\nstatus: current",
+    "# Tenancy Matching\n\nAsk whether a Behaviour Support Plan exists before a meet and greet.");
+
+  page("processes", "legacy-matching",
+    "title: Legacy Matching\naliases:\n  - Legacy Matching\ntype: process\n" +
+    "tags:\n  - type/process\nsummary: The retired matching process, kept for history.\n" +
+    "updated: 2026-01-01\nstatus: superseded",
+    "# Legacy Matching\n\nThe old flow also referenced a Behaviour Support Plan.");
+
+  // Frontmatter that does not parse: it must be skipped, not fatal.
+  writeFileSync(join(work, "wiki", "concepts", "broken.md"),
+    "---\ntitle: Broken\n  this is not: valid: yaml: at all\n\n# Broken\n\nBehaviour Support Plan.\n");
+
+  // The unowned-term register really does sit inside a callout, so the table rows are prefixed.
+  writeFileSync(join(work, "wiki", "gaps.md"),
+    "---\ntitle: Known Gaps\naliases:\n  - Known Gaps\ntype: gaps\ntags:\n  - type/gaps\n" +
+    "summary: What the wiki does not cover yet.\nupdated: 2026-08-13\nstatus: current\n---\n\n" +
+    "# Known Gaps\n\n> [!todo] Unowned recurring terms\n> | Term | Pages | Resolution |\n" +
+    "> |---|---|---|\n> | **Behaviour Support Plan** | 16 | A concept page. |\n" +
+    "> | **Support Coordinator** | 12 | Needs its own page. |\n");
   writeFileSync(join(work, "raw", "sources", "confidential.md"),
     "This file must never reach a staff machine. Its presence in a checkout is a test failure.\n");
   writeFileSync(join(work, "outputs", "report.md"), "Generated output, also excluded.\n");

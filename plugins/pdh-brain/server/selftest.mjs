@@ -378,6 +378,51 @@ try {
     shim5.read().split("\n").some((l) => l.startsWith("clone")) &&
       migratedStatus.includes(repo.head),
     `status ${JSON.stringify(migratedStatus)}; argv ${shim5.read().split("\n").filter(Boolean).join(" / ").slice(0, 100)}`);
+  // --- retrieval -------------------------------------------------------------------------------
+  // Assertions compare slugs, counts and line numbers only — never page text. This file is
+  // committed to a public repository, and an expected-string assertion would publish vault
+  // content into permanent public history.
+  const remote5 = await serveWithAuth({ bare: repo.bare, token: TOKEN });
+  const readDir = tempDir("data");
+  const rs = startServer({ ...env2(readDir), PDH_VAULT_REPO: remote5.url });
+  await rs.send("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {},
+    clientInfo: { name: "selftest", version: "0" } });
+  const tool = async (name, args = {}) => {
+    const res = await rs.send("tools/call", { name, arguments: args });
+    return { text: res.result?.content?.[0]?.text ?? "", isError: !!res.result?.isError };
+  };
+
+  const hits = await tool("search_brain", { query: "Behaviour Support Plan" });
+  const slugsFound = ["glossary", "restraint-review", "tenancy-matching", "legacy-matching"]
+    .filter((s) => new RegExp(`\\[\\[${s}\\|`).test(hits.text));
+  check("search finds every page that states the term, not only those that summarise it",
+    slugsFound.length >= 4, `found ${slugsFound.length}: ${slugsFound.join(", ")}`);
+  check("a term split across a line break is still found",
+    /\[\[restraint-review\|/.test(hits.text),
+    "the page wrapping the term mid-phrase was missed — matching is not whitespace-normalised");
+  check("matches report the body line they start on", /body lines \d/.test(hits.text));
+  check("a superseded page is flagged as retired", /SUPERSEDED/.test(hits.text));
+  check("the full catalogue rides along so a keyword miss is recoverable",
+    /Every page in the brain/.test(hits.text) && /example-page —/.test(hits.text));
+  check("a page with unparseable frontmatter is skipped, not fatal",
+    !/\[\[broken\|/.test(hits.text) && hits.text.length > 0);
+
+  const traversal = await tool("read_page", { slug: "../CLAUDE.md" });
+  check("a path is rejected for its shape, not for being absent",
+    traversal.isError && /not a page slug/.test(traversal.text),
+    `read_page said ${JSON.stringify(traversal.text.slice(0, 120))}`);
+  const missing = await tool("read_page", { slug: "no-such-page" });
+  check("an unknown slug errors rather than returning nothing",
+    missing.isError && /No page named/.test(missing.text));
+  const real = await tool("read_page", { slug: "tenancy-matching" });
+  check("a valid slug returns the page", !real.isError && real.text.includes("tenancy-matching"));
+
+  const gaps = await tool("list_gaps");
+  check("gaps are read out of the callout the table is nested inside",
+    /Behaviour Support Plan/.test(gaps.text) && /Support Coordinator/.test(gaps.text),
+    `list_gaps said ${JSON.stringify(gaps.text.slice(0, 160))}`);
+  rs.stop();
+  await remote5.close();
   await remote4.close();
 } catch (err) {
   check("the vault syncs against the fixture", false, err.stack ?? err.message);

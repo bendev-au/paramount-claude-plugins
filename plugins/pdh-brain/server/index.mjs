@@ -8,6 +8,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { ensureVault, days } from "./vault.mjs";
+import { loadPages, search, readPage, listGaps } from "./retrieve.mjs";
 
 // Echo back whatever protocol version the client asked for. This server uses only initialize,
 // tools/list and tools/call, which every revision defines identically, so there is nothing to
@@ -95,11 +96,36 @@ async function callTool(name, args) {
   // "the brain is not reachable", and only one of those means go and look somewhere else.
   if (!vault.ok) return text(`Cannot answer from the company brain — ${vault.message}`);
 
+  const pages = loadPages(vault.vaultPath);
+
   switch (name) {
-    case "search_brain":
-    case "read_page":
-    case "list_gaps":
-      return text(`Retrieval lands in the next slice. The vault is synced at ${vault.head}.`);
+    case "search_brain": {
+      const { results, catalogue } = search(pages, args.query ?? "", args.limit ?? 8);
+      const found = results.length
+        ? results.map((r) => {
+            const where = r.lines.length ? ` · body lines ${r.lines.join(", ")}` : "";
+            const retired = r.status === "superseded"
+              ? " · SUPERSEDED — retired process, do not cite as current" : "";
+            return `[[${r.slug}|${r.title}]] — ${r.summary}${where}${retired}`;
+          }).join("\n")
+        : "No page matched those words.";
+      return text(
+        `Matches for "${args.query}":\n${found}\n\n` +
+        `Every page in the brain, so you can choose one the words above missed:\n` +
+        `${catalogue.join("\n")}\n\n` +
+        `Read a page with read_page before answering. Cite it as [[slug|Title]].`);
+    }
+    case "read_page": {
+      const { page, error } = readPage(pages, args.slug);
+      if (error) return { ...text(error), isError: true };
+      return text(`# ${page.title} (${page.slug})\n\n${page.body.trim()}`);
+    }
+    case "list_gaps": {
+      const { rows } = listGaps(vault.vaultPath);
+      return text(rows.length
+        ? `What the brain knows it does not cover:\n${rows.join("\n")}`
+        : "The brain records no open gaps.");
+    }
     default:
       return null;
   }
