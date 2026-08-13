@@ -5,6 +5,10 @@
 // every diagnostic goes to stderr. The selftest asserts this, because it is the failure that
 // looks like the client is broken rather than the server.
 
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { ensureVault } from "./vault.mjs";
+
 // Echo back whatever protocol version the client asked for. This server uses only initialize,
 // tools/list and tools/call, which every revision defines identically, so there is nothing to
 // negotiate down to. Answering with a version of our own choosing instead gets the connection
@@ -66,19 +70,31 @@ const reply = (id, result) => write({ jsonrpc: "2.0", id, result });
 const fail = (id, code, message) => write({ jsonrpc: "2.0", id, error: { code, message } });
 const text = (s) => ({ content: [{ type: "text", text: s }] });
 
-// Vault-backed tools land in slice 2. Until then brain_status reports the true first-run state
-// rather than pretending, and the content tools say so instead of returning an empty result —
-// "the brain holds nothing" and "the brain is not reachable yet" must never look alike.
-const NOT_WIRED = "The company brain is not synced on this machine yet.";
+const config = () => ({
+  repo: process.env.PDH_VAULT_REPO,
+  token: process.env.PDH_VAULT_TOKEN,
+  dataDir: process.env.PDH_DATA_DIR || join(homedir(), ".pdh-brain"),
+});
 
 async function callTool(name, args) {
+  if (name !== "brain_status" && !TOOLS.some((t) => t.name === name)) return null;
+
+  const vault = await ensureVault(config());
+
+  if (name === "brain_status") {
+    return text(vault.ok
+      ? `The company brain is available at commit ${vault.head}.`
+      : `Unavailable — ${vault.message}`);
+  }
+  // A refusal, never an empty result: a reader cannot tell "the brain does not cover this" from
+  // "the brain is not reachable", and only one of those means go and look somewhere else.
+  if (!vault.ok) return text(`Cannot answer from the company brain — ${vault.message}`);
+
   switch (name) {
-    case "brain_status":
-      return text(`${NOT_WIRED} No vault has been fetched, so there is no commit to report.`);
     case "search_brain":
     case "read_page":
     case "list_gaps":
-      return text(NOT_WIRED);
+      return text(`Retrieval lands in the next slice. The vault is synced at ${vault.head}.`);
     default:
       return null;
   }

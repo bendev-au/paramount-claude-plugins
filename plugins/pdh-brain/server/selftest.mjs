@@ -5,9 +5,13 @@
 // Everything here asserts observable protocol behaviour, never internals: the server is a black
 // box that reads newline-delimited JSON-RPC on stdin and writes it on stdout.
 
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync,
+  rmSync, chmodSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { createVaultRepo, serveWithAuth } from "./fixture.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SERVER = join(HERE, "index.mjs");
@@ -154,6 +158,123 @@ try {
   s.stop();
 } catch (err) {
   check("the server answers tools/call", false, err.message);
+}
+
+// --- the vault: authenticated, sparse, and leaving no credential behind ------------------------
+const TOKEN = "fixture-token-9f3a";
+const scratch = [];
+const tempDir = (label) => {
+  const d = mkdtempSync(join(tmpdir(), `pdh-${label}-`));
+  scratch.push(d);
+  return d;
+};
+
+// Records every git invocation's arguments, so a token smuggled through argv is visible. argv is
+// world-readable through ps, which makes it a real leak and not a theoretical one.
+function gitShim() {
+  const dir = tempDir("shim");
+  const log = join(dir, "argv.log");
+  const realGit = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
+  writeFileSync(join(dir, "git"),
+    `#!/bin/sh\nprintf '%s\\n' "$*" >> ${JSON.stringify(log)}\nexec ${JSON.stringify(realGit)} "$@"\n`);
+  chmodSync(join(dir, "git"), 0o755);
+  return { dir, log, read: () => (existsSync(log) ? readFileSync(log, "utf8") : "") };
+}
+
+const walk = (dir) => (existsSync(dir) ? readdirSync(dir).flatMap((n) => {
+  const p = join(dir, n);
+  return statSync(p).isDirectory() ? walk(p) : [p];
+}) : []);
+
+const filesContaining = (dir, needle) => walk(dir).filter((p) => {
+  try { return readFileSync(p, "utf8").includes(needle); } catch { return false; }
+});
+
+const callStatus = async (s) => {
+  await s.send("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {},
+    clientInfo: { name: "selftest", version: "0" } });
+  const res = await s.send("tools/call", { name: "brain_status", arguments: {} });
+  return res.result?.content?.[0]?.text ?? JSON.stringify(res);
+};
+
+const repo = createVaultRepo();
+const remote = await serveWithAuth({ bare: repo.bare, token: TOKEN });
+
+try {
+  // 1-4: a good token clones, scopes the checkout, and leaves no trace of itself.
+  const shim = gitShim();
+  const dataDir = tempDir("data");
+  const s = startServer({
+    PATH: `${shim.dir}:${process.env.PATH}`,
+    PDH_VAULT_REPO: remote.url,
+    PDH_VAULT_TOKEN: TOKEN,
+    PDH_DATA_DIR: dataDir,
+  });
+  const status = await callStatus(s);
+  s.stop();
+
+  check("a first call clones and reports the vault's commit", status.includes(repo.head),
+    `status was ${JSON.stringify(status)}, fixture head is ${repo.head}`);
+
+  const vault = join(dataDir, "vault");
+  check("the checkout contains wiki/ and CLAUDE.md",
+    existsSync(join(vault, "wiki")) && existsSync(join(vault, "CLAUDE.md")),
+    `vault contents: ${existsSync(vault) ? readdirSync(vault).join(", ") : "<no vault>"}`);
+  check("the checkout excludes raw/ and outputs/",
+    !existsSync(join(vault, "raw")) && !existsSync(join(vault, "outputs")),
+    `vault contents: ${existsSync(vault) ? readdirSync(vault).join(", ") : "<no vault>"}`);
+
+  const leaked = filesContaining(dataDir, TOKEN);
+  check("the token is written to no file, including .git/config",
+    leaked.length === 0, `found in: ${leaked.map((p) => p.replace(dataDir, "")).join(", ")}`);
+  check("the token appears in no tool response", !status.includes(TOKEN));
+  check("the token appears in no log line", !s.stderr.includes(TOKEN));
+  // Assert the shim actually saw git first: "the log contains no token" is vacuously true of an
+  // empty log, which is exactly what a broken shim produces.
+  const invocations = shim.read().split("\n").filter(Boolean);
+  check("the git shim observed the clone", invocations.some((l) => l.startsWith("clone")),
+    `argv log had ${invocations.length} invocation(s): ${invocations.join(" / ").slice(0, 120)}`);
+  check("the token appears in no git command line", !shim.read().includes(TOKEN),
+    `argv log: ${invocations.join(" / ").slice(0, 160)}`);
+
+  // 5: a rejected credential refuses in terms the user can act on, and does not hang.
+  const bad = startServer({
+    PDH_VAULT_REPO: remote.url, PDH_VAULT_TOKEN: "wrong-token", PDH_DATA_DIR: tempDir("data"),
+  });
+  const badStatus = await callStatus(bad);
+  bad.stop();
+  check("a rejected token says so, rather than hanging or blaming the network",
+    /token was rejected|expired|revoked/i.test(badStatus), `status was ${JSON.stringify(badStatus)}`);
+
+  // 6: an absent credential names the setting to fill in, not a git error.
+  const none = startServer({
+    PDH_VAULT_REPO: remote.url, PDH_VAULT_TOKEN: "", PDH_DATA_DIR: tempDir("data"),
+  });
+  const noneStatus = await callStatus(none);
+  none.stop();
+  check("a missing token names the setting to fill in", noneStatus.includes("vault_token"),
+    `status was ${JSON.stringify(noneStatus)}`);
+
+  // 7: unreachable with nothing cached is a refusal, never an empty answer.
+  await remote.close();
+  const offline = startServer({
+    PDH_VAULT_REPO: remote.url, PDH_VAULT_TOKEN: TOKEN, PDH_DATA_DIR: tempDir("data"),
+  });
+  await offline.send("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {},
+    clientInfo: { name: "selftest", version: "0" } });
+  const searchRes = await offline.send("tools/call",
+    { name: "search_brain", arguments: { query: "anything" } });
+  const searchText = searchRes.result?.content?.[0]?.text ?? "";
+  offline.stop();
+  check("an unreachable vault with no local copy refuses rather than returning nothing",
+    /could not be reached/i.test(searchText) && searchText.length > 0,
+    `search_brain said ${JSON.stringify(searchText)}`);
+} catch (err) {
+  check("the vault syncs against the fixture", false, err.stack ?? err.message);
+} finally {
+  try { await remote.close(); } catch {}
+  repo.cleanup();
+  for (const d of scratch) rmSync(d, { recursive: true, force: true });
 }
 
 console.log(failures === 0 ? "\nclean — 0 failures" : `\n${failures} failure(s)`);
