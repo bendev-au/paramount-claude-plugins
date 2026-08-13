@@ -7,6 +7,7 @@
 
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { ensureVault, days } from "./vault.mjs";
 import { loadPages, search, readPage, listGaps } from "./retrieve.mjs";
 
@@ -70,6 +71,40 @@ const write = (msg) => process.stdout.write(JSON.stringify(msg) + "\n");
 const reply = (id, result) => write({ jsonrpc: "2.0", id, result });
 const fail = (id, code, message) => write({ jsonrpc: "2.0", id, error: { code, message } });
 const text = (s) => ({ content: [{ type: "text", text: s }] });
+
+// Only the mechanics below are written here. The answer rules themselves are single-sourced in the
+// vault's own CLAUDE.md, between anchors, and read out of the synced checkout — so a remote session
+// gets the same rules an in-repo session follows, with no second copy to drift from. Nothing is
+// bundled as a fallback for the same reason: a bundled copy *is* the drift.
+//
+// This is read from disk, not synced, so session start stays fast. Before a machine's first sync
+// there is nothing to read, and the instructions say so rather than inventing rules.
+function instructions() {
+  const mechanics =
+    "Answer questions about Paramount's company knowledge base using this server's tools.\n\n" +
+    "Call search_brain first — it returns matching pages plus the full page catalogue, so when " +
+    "the keywords miss you can still choose a page by what it covers. Then read_page each page " +
+    "you intend to cite. brain_status reports how current the local copy is; if it reports STALE, " +
+    "say so in your answer. list_gaps says what the brain knows it does not cover.\n\n";
+
+  try {
+    const claudeMd = readFileSync(join(config().dataDir, "vault", "CLAUDE.md"), "utf8");
+    const start = claudeMd.indexOf(RULES_START);
+    const end = claudeMd.indexOf(RULES_END);
+    if (start !== -1 && end > start) {
+      const rules = claudeMd.slice(start + RULES_START.length, end).trim();
+      if (rules) return `${mechanics}These rules come from the knowledge base itself:\n\n${rules}`;
+    }
+    log("no answer-rules block found in the vault's CLAUDE.md");
+  } catch {
+    log("vault not synced yet — serving mechanics without the knowledge base's answer rules");
+  }
+  return `${mechanics}The knowledge base has not synced on this machine yet, so its own answer ` +
+    `rules are not available. Call brain_status before relying on anything here.`;
+}
+
+const RULES_START = "<!-- answer-rules:start -->";
+const RULES_END = "<!-- answer-rules:end -->";
 
 const config = () => ({
   repo: process.env.PDH_VAULT_REPO,
@@ -138,6 +173,7 @@ async function handle(msg) {
         protocolVersion: msg.params?.protocolVersion ?? FALLBACK_PROTOCOL_VERSION,
         capabilities: { tools: {} },
         serverInfo: SERVER_INFO,
+        instructions: instructions(),
       });
     case "tools/list":
       return reply(msg.id, { tools: TOOLS });

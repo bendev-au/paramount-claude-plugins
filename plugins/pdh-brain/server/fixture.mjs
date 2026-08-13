@@ -31,7 +31,10 @@ export function createVaultRepo() {
   mkdirSync(join(work, "raw", "sources"), { recursive: true });
   mkdirSync(join(work, "outputs"), { recursive: true });
 
-  writeFileSync(join(work, "CLAUDE.md"), "# Fixture vault\n\n## Query\n\nAnswer with citations.\n");
+  writeFileSync(join(work, "CLAUDE.md"),
+    "# Fixture vault\n\n## Query\n\n1. Start from the catalogue.\n\n### Answer rules\n\n" +
+    "<!-- answer-rules:start -->\n- Answer with `[[wikilink]]` citations.\n" +
+    "- When the wiki is thin on a topic, say so.\n<!-- answer-rules:end -->\n");
 
   // The fixture reproduces the real vault's *shapes*, not its content — this repository is public.
   // Each page below exists to exercise one retrieval property.

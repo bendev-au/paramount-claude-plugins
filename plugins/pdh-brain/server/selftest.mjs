@@ -422,6 +422,32 @@ try {
     /Behaviour Support Plan/.test(gaps.text) && /Support Coordinator/.test(gaps.text),
     `list_gaps said ${JSON.stringify(gaps.text.slice(0, 160))}`);
   rs.stop();
+
+  // --- the answer rules reach a remote session, from one source ---------------------------------
+  // readDir is already synced from the retrieval block above, so this reads the checkout the way a
+  // second session on the same machine would.
+  const instr = startServer({ ...env2(readDir), PDH_VAULT_REPO: remote5.url });
+  const init = await instr.send("initialize", { protocolVersion: PROTOCOL_VERSION,
+    capabilities: {}, clientInfo: { name: "selftest", version: "0" } });
+  instr.stop();
+  const shipped = init.result?.instructions ?? "";
+  check("initialize ships the tool mechanics", /search_brain first/.test(shipped));
+  check("initialize ships the knowledge base's own answer rules verbatim",
+    shipped.includes("Answer with `[[wikilink]]` citations.") &&
+      shipped.includes("When the wiki is thin on a topic, say so."),
+    `instructions were ${JSON.stringify(shipped.slice(0, 200))}`);
+  check("the anchors themselves are not shipped",
+    !shipped.includes("answer-rules:start"), "the anchor markers leaked into the instructions");
+
+  // A machine that has never synced says so, rather than inventing rules.
+  const cold = startServer({ ...env2(tempDir("data")), PDH_VAULT_REPO: remote5.url });
+  const coldInit = await cold.send("initialize", { protocolVersion: PROTOCOL_VERSION,
+    capabilities: {}, clientInfo: { name: "selftest", version: "0" } });
+  cold.stop();
+  check("a machine with no synced copy says the rules are unavailable",
+    /has not synced/.test(coldInit.result?.instructions ?? ""),
+    `instructions were ${JSON.stringify((coldInit.result?.instructions ?? "").slice(0, 160))}`);
+
   await remote5.close();
   await remote4.close();
 } catch (err) {
