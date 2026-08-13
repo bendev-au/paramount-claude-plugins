@@ -9,7 +9,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync,
-  rmSync, chmodSync } from "node:fs";
+  rmSync, chmodSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createVaultRepo, serveWithAuth } from "./fixture.mjs";
 
@@ -269,6 +269,64 @@ try {
   check("an unreachable vault with no local copy refuses rather than returning nothing",
     /could not be reached/i.test(searchText) && searchText.length > 0,
     `search_brain said ${JSON.stringify(searchText)}`);
+  // --- throttle and lock -----------------------------------------------------------------------
+  // Re-open the remote: the offline case above closed it.
+  const remote2 = await serveWithAuth({ bare: repo.bare, token: TOKEN });
+  const env2 = (dataDir, shimDir) => ({
+    ...(shimDir ? { PATH: `${shimDir}:${process.env.PATH}` } : {}),
+    PDH_VAULT_REPO: remote2.url, PDH_VAULT_TOKEN: TOKEN, PDH_DATA_DIR: dataDir,
+  });
+  const setLastSync = (dataDir, msAgo) => {
+    const f = join(dataDir, "state.json");
+    const st = JSON.parse(readFileSync(f, "utf8"));
+    writeFileSync(f, JSON.stringify({ ...st, lastSync: Date.now() - msAgo }));
+  };
+
+  // Seed a synced vault, then make the remote unreachable. Inside the throttle window the server
+  // must not touch the network at all — which is only observable if the network would fail.
+  const throttleDir = tempDir("data");
+  {
+    const seed = startServer(env2(throttleDir));
+    await callStatus(seed);
+    seed.stop();
+  }
+  const shim2 = gitShim();
+  await remote2.close();
+  const throttled = startServer(env2(throttleDir, shim2.dir));
+  const throttledStatus = await callStatus(throttled);
+  throttled.stop();
+  check("a call inside the 15-minute window serves without touching the network",
+    throttledStatus.includes(repo.head) && !/stale|could not be reached/i.test(throttledStatus),
+    `status was ${JSON.stringify(throttledStatus)}`);
+  check("no fetch was attempted inside the window",
+    !shim2.read().split("\n").some((l) => l.startsWith("fetch")),
+    `argv log: ${shim2.read().split("\n").filter(Boolean).join(" / ").slice(0, 120)}`);
+
+  // Past the window it must try, and the attempt is the observable — not the outcome.
+  const remote3 = await serveWithAuth({ bare: repo.bare, token: TOKEN });
+  const shim3 = gitShim();
+  setLastSync(throttleDir, 20 * 60 * 1000);
+  const refreshed = startServer({ ...env2(throttleDir, shim3.dir), PDH_VAULT_REPO: remote3.url });
+  await callStatus(refreshed);
+  refreshed.stop();
+  check("a call past the window does attempt a fetch",
+    shim3.read().split("\n").some((l) => l.startsWith("fetch")),
+    `argv log: ${shim3.read().split("\n").filter(Boolean).join(" / ").slice(0, 120)}`);
+
+  // A sync killed mid-flight leaves a lock behind. It must expire, not wedge the server forever.
+  setLastSync(throttleDir, 20 * 60 * 1000);
+  const lockFile = join(throttleDir, "sync.lock");
+  writeFileSync(lockFile, String(process.pid));
+  const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
+  utimesSync(lockFile, tenMinAgo, tenMinAgo);
+  const shim4 = gitShim();
+  const stale = startServer({ ...env2(throttleDir, shim4.dir), PDH_VAULT_REPO: remote3.url });
+  const staleStatus = await callStatus(stale);
+  stale.stop();
+  check("a stale lock is ignored rather than blocking",
+    staleStatus.includes(repo.head) && shim4.read().split("\n").some((l) => l.startsWith("fetch")),
+    `status ${JSON.stringify(staleStatus)}; argv ${shim4.read().split("\n").filter(Boolean).join(" / ").slice(0, 100)}`);
+  await remote3.close();
 } catch (err) {
   check("the vault syncs against the fixture", false, err.stack ?? err.message);
 } finally {

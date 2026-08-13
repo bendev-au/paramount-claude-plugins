@@ -13,12 +13,20 @@
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, renameSync, chmodSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, renameSync, chmodSync,
+  statSync } from "node:fs";
 import { join } from "node:path";
 
 const pexec = promisify(execFile);
 
 export const STATE_VERSION = 1;
+
+// A query inside this window reads the existing checkout with no network call at all. It sets how
+// long a legitimately offline user waits before the staleness marker appears.
+export const THROTTLE_MS = 15 * 60 * 1000;
+// A sync killed mid-fetch — force quit, sleep, OOM — leaves its lock behind. Past this age the
+// lock is ignored, so a dead process degrades to "no sync" rather than wedging the server.
+export const LOCK_STALE_MS = 5 * 60 * 1000;
 
 // Named so a failure tells the user which setting to fix, not which git command failed.
 export const REASONS = {
@@ -106,6 +114,29 @@ async function cloneVault({ repo, token, dataDir }) {
   renameSync(staging, vault);
 }
 
+// Advisory and non-blocking by design: a caller that cannot take the lock serves what it already
+// has instead of waiting. Nothing here ever blocks a query on another process.
+function takeLock(dataDir) {
+  const { lock } = paths(dataDir);
+  if (existsSync(lock)) {
+    const age = Date.now() - statSync(lock).mtimeMs;
+    if (age < LOCK_STALE_MS) return false;
+  }
+  mkdirSync(dataDir, { recursive: true });
+  writeFileSync(lock, String(process.pid));
+  return true;
+}
+const dropLock = (dataDir) => rmSync(paths(dataDir).lock, { force: true });
+
+// Never `git pull`: a rebase or force-push on the default branch breaks a shallow pull
+// permanently, and the failure policy would then age every machine into refusal for a reason
+// nobody could see.
+async function fetchVault({ repo, token, dataDir }) {
+  const { vault } = paths(dataDir);
+  await git(["fetch", "--depth", "1", remoteUrl(repo), "HEAD"], { cwd: vault, token, dataDir });
+  await git(["reset", "--hard", "FETCH_HEAD"], { cwd: vault, token, dataDir });
+}
+
 export async function head(dataDir) {
   const { vault } = paths(dataDir);
   if (!existsSync(vault)) return null;
@@ -148,5 +179,23 @@ export async function ensureVault({ repo, token, dataDir }) {
     return { ok: true, head: at, vaultPath: vault, fresh: true };
   }
 
-  return { ok: true, head: await head(dataDir), vaultPath: vault, fresh: false };
+  const state = readState(dataDir);
+  const age = state ? Date.now() - state.lastSync : Infinity;
+
+  // Inside the window, or unable to take the lock, serve what is already on disk untouched.
+  if (age < THROTTLE_MS || !takeLock(dataDir)) {
+    return { ok: true, head: await head(dataDir), vaultPath: vault, fresh: age < THROTTLE_MS };
+  }
+
+  try {
+    await fetchVault({ repo, token, dataDir });
+    const at = await head(dataDir);
+    writeState(dataDir, at);
+    return { ok: true, head: at, vaultPath: vault, fresh: true };
+  } catch (err) {
+    return { ok: true, head: await head(dataDir), vaultPath: vault, fresh: false,
+      syncFailed: classify(err), ageMs: age };
+  } finally {
+    dropLock(dataDir);
+  }
 }
