@@ -27,6 +27,17 @@ export const THROTTLE_MS = 15 * 60 * 1000;
 // A sync killed mid-fetch — force quit, sleep, OOM — leaves its lock behind. Past this age the
 // lock is ignored, so a dead process degrades to "no sync" rather than wedging the server.
 export const LOCK_STALE_MS = 5 * 60 * 1000;
+// How long a machine may keep answering after its last successful sync. Deliberately a window
+// rather than a cause classification: GitHub answers 404 for a private repo the caller may not
+// read, which is indistinguishable from deletion and from several network faults, so a
+// revoked-versus-offline classifier cannot be made reliable. The cause still appears in the
+// message; only the age decides whether to answer.
+//
+// What this bounds is unattended staleness — a machine that quietly stops syncing stops
+// answering. It is not an access control: the checkout is already on that disk, and the timestamp
+// is a file its owner can edit.
+export const GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+export const days = (ms) => Math.floor(ms / (24 * 60 * 60 * 1000));
 
 // Named so a failure tells the user which setting to fix, not which git command failed.
 export const REASONS = {
@@ -34,6 +45,7 @@ export const REASONS = {
   NO_REPO: "no-repo",
   AUTH: "auth",
   UNREACHABLE: "unreachable",
+  EXPIRED: "expired",
 };
 
 export const paths = (dataDir) => ({
@@ -180,11 +192,26 @@ export async function ensureVault({ repo, token, dataDir }) {
   }
 
   const state = readState(dataDir);
-  const age = state ? Date.now() - state.lastSync : Infinity;
+  // No readable state — missing, corrupt, or a version this build does not know — means we cannot
+  // say how old the checkout is, so it is rebuilt rather than trusted.
+  if (!state) {
+    try {
+      await cloneVault({ repo, token, dataDir });
+      const at = await head(dataDir);
+      writeState(dataDir, at);
+      return { ok: true, head: at, vaultPath: vault, fresh: true };
+    } catch (err) {
+      return { ok: false, reason: classify(err),
+        message: "The local copy could not be verified and re-fetching it failed, so nothing on " +
+          "this machine can be trusted as current." };
+    }
+  }
 
-  // Inside the window, or unable to take the lock, serve what is already on disk untouched.
+  const age = Date.now() - state.lastSync;
+
+  // Inside the throttle, or unable to take the lock, serve what is on disk untouched.
   if (age < THROTTLE_MS || !takeLock(dataDir)) {
-    return { ok: true, head: await head(dataDir), vaultPath: vault, fresh: age < THROTTLE_MS };
+    return { ok: true, head: await head(dataDir), vaultPath: vault, fresh: true };
   }
 
   try {
@@ -193,6 +220,12 @@ export async function ensureVault({ repo, token, dataDir }) {
     writeState(dataDir, at);
     return { ok: true, head: at, vaultPath: vault, fresh: true };
   } catch (err) {
+    if (age >= GRACE_MS) {
+      return { ok: false, reason: REASONS.EXPIRED, ageMs: age,
+        message: `the local copy is ${days(age)} days old and has not synced since. It will ` +
+          `not be served past ${days(GRACE_MS)} days, whether the cause is a revoked token, a ` +
+          `deleted repository or a network fault — they are not distinguishable from here.` };
+    }
     return { ok: true, head: await head(dataDir), vaultPath: vault, fresh: false,
       syncFailed: classify(err), ageMs: age };
   } finally {

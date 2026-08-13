@@ -326,7 +326,59 @@ try {
   check("a stale lock is ignored rather than blocking",
     staleStatus.includes(repo.head) && shim4.read().split("\n").some((l) => l.startsWith("fetch")),
     `status ${JSON.stringify(staleStatus)}; argv ${shim4.read().split("\n").filter(Boolean).join(" / ").slice(0, 100)}`);
+  // --- the grace window ------------------------------------------------------------------------
+  const DAY = 24 * 60 * 60 * 1000;
+  const callTool = async (s, name, args = {}) => {
+    await s.send("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {},
+      clientInfo: { name: "selftest", version: "0" } });
+    const res = await s.send("tools/call", { name, arguments: args });
+    return res.result?.content?.[0]?.text ?? JSON.stringify(res);
+  };
+
+  // Inside the window an unreachable remote degrades: still answers, but says how old it is.
+  setLastSync(throttleDir, 2 * DAY);
   await remote3.close();
+  const degraded = startServer({ ...env2(throttleDir), PDH_VAULT_REPO: remote3.url });
+  const degradedStatus = await callTool(degraded, "brain_status");
+  degraded.stop();
+  check("inside the window a failed sync still answers, and names the age",
+    degradedStatus.includes(repo.head) && /stale/i.test(degradedStatus) &&
+      /2 days/.test(degradedStatus),
+    `status was ${JSON.stringify(degradedStatus)}`);
+
+  // Past it, the content tools stop answering — whatever the cause.
+  setLastSync(throttleDir, 8 * DAY);
+  const expired = startServer({ ...env2(throttleDir), PDH_VAULT_REPO: remote3.url });
+  const expiredSearch = await callTool(expired, "search_brain", { query: "anything" });
+  expired.stop();
+  check("past the window the content tools refuse",
+    /8 days old/.test(expiredSearch) && /will not be served/i.test(expiredSearch),
+    `search_brain said ${JSON.stringify(expiredSearch)}`);
+
+  // A revoked token is indistinguishable from a network fault by design, so it must produce the
+  // same refusal — the window is the control, not error-string matching.
+  const remote4 = await serveWithAuth({ bare: repo.bare, token: TOKEN });
+  setLastSync(throttleDir, 8 * DAY);
+  const revoked = startServer({ ...env2(throttleDir), PDH_VAULT_REPO: remote4.url,
+    PDH_VAULT_TOKEN: "revoked-token" });
+  const revokedSearch = await callTool(revoked, "search_brain", { query: "anything" });
+  revoked.stop();
+  check("a revoked token past the window refuses the same way any other cause does",
+    /8 days old/.test(revokedSearch) && /will not be served/i.test(revokedSearch),
+    `search_brain said ${JSON.stringify(revokedSearch)}`);
+
+  // An unrecognised state file is a re-clone, never a misread.
+  writeFileSync(join(throttleDir, "state.json"),
+    JSON.stringify({ stateVersion: 999, lastSync: Date.now(), head: "deadbee" }));
+  const shim5 = gitShim();
+  const migrated = startServer({ ...env2(throttleDir, shim5.dir), PDH_VAULT_REPO: remote4.url });
+  const migratedStatus = await callTool(migrated, "brain_status");
+  migrated.stop();
+  check("an unknown state version re-clones rather than trusting the file",
+    shim5.read().split("\n").some((l) => l.startsWith("clone")) &&
+      migratedStatus.includes(repo.head),
+    `status ${JSON.stringify(migratedStatus)}; argv ${shim5.read().split("\n").filter(Boolean).join(" / ").slice(0, 100)}`);
+  await remote4.close();
 } catch (err) {
   check("the vault syncs against the fixture", false, err.stack ?? err.message);
 } finally {

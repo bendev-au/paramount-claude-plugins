@@ -7,7 +7,7 @@
 
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { ensureVault } from "./vault.mjs";
+import { ensureVault, days } from "./vault.mjs";
 
 // Echo back whatever protocol version the client asked for. This server uses only initialize,
 // tools/list and tools/call, which every revision defines identically, so there is nothing to
@@ -82,9 +82,14 @@ async function callTool(name, args) {
   const vault = await ensureVault(config());
 
   if (name === "brain_status") {
-    return text(vault.ok
-      ? `The company brain is available at commit ${vault.head}.`
-      : `Unavailable — ${vault.message}`);
+    if (!vault.ok) return text(`Unavailable — ${vault.message}`);
+    // A stale answer that does not say it is stale is the failure this whole mechanism exists to
+    // prevent, so the age travels with the result rather than sitting in a log.
+    return text(vault.syncFailed
+      ? `The company brain is available at commit ${vault.head}, but STALE: the last successful ` +
+        `sync was ${days(vault.ageMs)} days ago and the latest attempt failed. Say so in any ` +
+        `answer drawn from it.`
+      : `The company brain is available at commit ${vault.head}.`);
   }
   // A refusal, never an empty result: a reader cannot tell "the brain does not cover this" from
   // "the brain is not reachable", and only one of those means go and look somewhere else.
