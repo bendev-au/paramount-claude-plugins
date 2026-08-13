@@ -54,7 +54,7 @@ export function createVaultRepo() {
     "summary: Short definitions of the acronyms used across the wiki.\n" +
     "updated: 2026-08-13\nstatus: current",
     "# Glossary\n\n| Term | Meaning |\n|---|---|\n" +
-    "| **BSP** | Behaviour Support Plan — plain-language notes for a fixture term. |");
+    "| **BSP** | Behaviour Support Plan. Invented gloss; this fixture carries no wiki text. |");
 
   // The critical one: the term is split across a line break, so a line-based scan misses it and
   // only whitespace-normalised matching finds it. This is the real vault's own recall bug.
@@ -62,8 +62,9 @@ export function createVaultRepo() {
     "title: Restraint Review\naliases:\n  - Restraint Review\ntype: concept\n" +
     "tags:\n  - type/concept\nsummary: When an environmental restraint has to be reviewed.\n" +
     "updated: 2026-08-13\nstatus: current",
-    "# Restraint Review\n\nWhere a door lock is considered an environmental restraint we review\n" +
-    "the Behaviour Support\nPlan before anything else changes.");
+    // The wrap is the point: the term straddles a newline, so a line-based scan misses it.
+    "# Restraint Review\n\nFixture sentence one, padded so the phrase falls across a\n" +
+    "line break: Behaviour Support\nPlan appears split here on purpose.");
 
   page("processes", "tenancy-matching",
     "title: Tenancy Matching\naliases:\n  - Tenancy Matching\ntype: process\n" +
