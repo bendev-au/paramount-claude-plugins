@@ -1,0 +1,32 @@
+{
+  "name": "pdh-brain",
+  "description": "Ask the Paramount company brain a question from any repo, and get answers cited back to real wiki pages.",
+  "version": "0.1.0",
+  "author": { "name": "Paramount Disability Homes" },
+  "homepage": "https://github.com/bendev-au/paramount-claude-plugins",
+  "license": "UNLICENSED",
+  "userConfig": {
+    "vault_repo": {
+      "type": "string",
+      "title": "Knowledge base repository",
+      "description": "The private GitHub repository holding the wiki, as owner/name. Supplied with your access token."
+    },
+    "vault_token": {
+      "type": "string",
+      "title": "Read-only access token",
+      "description": "A fine-grained GitHub token with read-only Contents access to that repository. No GitHub login is needed — paste the token you were given.",
+      "sensitive": true
+    }
+  },
+  "mcpServers": {
+    "brain": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/index.mjs"],
+      "env": {
+        "PDH_VAULT_REPO": "${user_config.vault_repo}",
+        "PDH_VAULT_TOKEN": "${user_config.vault_token}",
+        "PDH_DATA_DIR": "${CLAUDE_PLUGIN_DATA}"
+      }
+    }
+  }
+}
