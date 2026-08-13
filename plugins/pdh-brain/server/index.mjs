@@ -106,9 +106,19 @@ function instructions() {
 const RULES_START = "<!-- answer-rules:start -->";
 const RULES_END = "<!-- answer-rules:end -->";
 
+// Installed, these come from the plugin's own configuration prompts. Under `claude --plugin-dir`
+// there is no prompt, and Claude Code substitutes the unset ${user_config.*} with an empty string
+// that overrides anything already in the environment — so without a fallback the plugin cannot be
+// exercised at all during development. The _DEV names are only consulted when the real setting is
+// empty, so an installed plugin never reaches them.
+const setting = (name) => {
+  const configured = process.env[name];
+  return configured && configured.trim() ? configured : process.env[`${name}_DEV`] || "";
+};
+
 const config = () => ({
-  repo: process.env.PDH_VAULT_REPO,
-  token: process.env.PDH_VAULT_TOKEN,
+  repo: setting("PDH_VAULT_REPO"),
+  token: setting("PDH_VAULT_TOKEN"),
   dataDir: process.env.PDH_DATA_DIR || join(homedir(), ".pdh-brain"),
 });
 
