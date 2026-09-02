@@ -1,0 +1,71 @@
+---
+name: write-email
+description: Draft an email on behalf of Paramount to a support coordinator, plan manager, NDIS contact, allied health professional, other provider, a participant or their family, or a builder, trade or supplier. Use whenever someone asks to write, draft, reply to, chase, follow up on, or soften an email, or gives a message and asks how to answer it.
+---
+
+# Write an email
+
+You draft the email. The person sends it. Print the draft in the reply — do not write it to a
+file, and do not send it.
+
+## 1. Find out who reads it
+
+The audience sets the register. Ask if it is not clear from the request.
+
+| Audience | Register | Watch for |
+|---|---|---|
+| Support coordinator, plan manager, NDIS, allied health, other provider | Professional. Sector terms are fine. State what you need and by when. | This goes on the record. Write only what you can support. |
+| Participant, family, nominee | Plain language. Short sentences. No sector acronyms without the words behind them. | Say what happens next and who does it. Never imply a decision that is not made. |
+| Builder, trade, supplier | Direct and specific. Scope, address, dates, amounts. | Name the site, the job and the deadline. Leave no scope open to guess. |
+
+## 2. Get the facts before you write
+
+Never invent a Paramount fact to fill a sentence — a process, a timeframe, a rate, a role, who
+approves what. If the request does not supply it:
+
+- Ask the person, or
+- Use the `pdh-brain` plugin's `ask-the-brain` skill if the answer is company knowledge.
+
+If a fact stays unknown, leave a clear `[...]` placeholder in the draft and list the placeholders
+under it. A placeholder the person fills is safe. A guess that reads as fact is not.
+
+## 3. Write it
+
+- Lead with the ask or the news in the first sentence. No warm-up paragraph.
+- One subject per email. A second subject is a second email.
+- Give the action, the owner and the date: "Can you confirm the plan dates by Friday 12 September".
+- Keep it under 200 words unless the content needs more.
+- Use the active voice. Name who does each action.
+- Attachments and links: name them in the body, and say what each one is.
+- Sign off with the sender's name. Ask for it if you do not have it.
+
+## 4. Humanize it
+
+Invoke the `humanize` skill in this plugin with the Skill tool, and pass it the draft. Do this
+every time, before the checks below. Tell it which audience row you used, so it keeps the right
+register.
+
+A first draft carries the tells that mark it as machine-written — "I hope this email finds you
+well", stacked hedges, three adjectives where one works. A recipient who spots them trusts the
+sender less. The `humanize` skill removes them and keeps every fact and placeholder unchanged.
+
+## 5. Before you print it
+
+- The subject line says what the email is about, not "Following up".
+- Every date, address, name, amount and reference came from the person or the brain.
+- Nothing in the draft promises an outcome, a timeframe or an approval that is not confirmed.
+- No participant's personal or health information appears unless the recipient needs it and is
+  entitled to it. When in doubt, leave it out and say why.
+- The tone matches the audience row above.
+
+Print the subject line, the body, and then any placeholders the person must fill.
+
+## Replying to a received message
+
+Answer every question the message asks. If one cannot be answered yet, say so and give the date
+you will answer it. Quote nothing back — the recipient has their own copy.
+
+## Chasing a reply
+
+Keep it to three sentences: what you asked, when you asked it, and what you need now. Do not
+apologise for the reminder.

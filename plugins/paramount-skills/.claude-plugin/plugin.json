@@ -1,0 +1,8 @@
+{
+  "name": "paramount-skills",
+  "description": "Shared skills for Paramount work — repeatable procedures available from any repo.",
+  "version": "0.1.0",
+  "author": { "name": "Paramount Disability Homes" },
+  "homepage": "https://github.com/bendev-au/paramount-claude-plugins",
+  "license": "UNLICENSED"
+}

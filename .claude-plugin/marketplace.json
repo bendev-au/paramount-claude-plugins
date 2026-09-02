@@ -10,6 +10,11 @@
       "name": "pdh-brain",
       "source": "./plugins/pdh-brain",
       "description": "Ask the company knowledge base a question from any repo, and get answers cited back to real wiki pages."
+    },
+    {
+      "name": "paramount-skills",
+      "source": "./plugins/paramount-skills",
+      "description": "Shared skills for Paramount work — repeatable procedures available from any repo."
     }
   ]
 }

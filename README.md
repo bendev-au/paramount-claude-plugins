@@ -10,12 +10,14 @@ data sources using credentials you supply at install time; nothing confidential 
 | Plugin | What it does |
 |---|---|
 | `pdh-brain` | Ask the company knowledge base a question from any repo, and get answers cited back to real wiki pages. |
+| `paramount-skills` | Shared skills for Paramount work — repeatable procedures available from any repo. |
 
 ## Install
 
 ```
 /plugin marketplace add bendev-au/paramount-claude-plugins
 /plugin install pdh-brain@paramount
+/plugin install paramount-skills@paramount
 ```
 
 No GitHub login is required to install. See the plugin's own README for the one credential it
