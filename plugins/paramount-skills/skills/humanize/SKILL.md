@@ -37,7 +37,8 @@ contractions evenly across the draft — a person contracts some and not others.
 
 ### Meta subject lines
 "Response to your marketing update" describes the act of replying. Name the thing instead:
-"Royal Avenue vacancy". On a reply, keep the Re: line the reader already has.
+"Royal Avenue vacancy". On a reply, write no subject line at all — the thread has one. Never
+write an instruction into the subject field.
 
 ### A draft that says nothing
 Count the paragraphs that defer to a later date. If that is most of them, the draft has no
@@ -119,6 +120,7 @@ support." Delete it, or replace it with the next concrete step.
 Removing the tells leaves clean but lifeless text. A person also:
 
 - **Commits.** "That date will not work for us" beats "that date may present some challenges".
+  Commit to what the sender told you. Do not commit on their behalf to something they never said.
 - **Says who does what.** Active voice, named actor. "Sarah will send the report", not "the report
   will be sent".
 - **Is specific.** "Friday 12 September" beats "in the coming weeks". "$4,200" beats "a modest
@@ -126,6 +128,29 @@ Removing the tells leaves clean but lifeless text. A person also:
 - **Admits limits.** "I do not have that yet — I will have it Thursday" is more human than a
   paragraph that hides the gap.
 - **Sounds like one person.** Use "I" and "we" where the sender means them.
+
+## What not to add
+
+The tells above are things to remove. This section names what a rewrite must not put in. A model
+told to sound human reaches for personality, and personality it invents belongs to nobody.
+
+### An opinion the sender did not give
+"Royal Melbourne is no great loss at this stage." "That was a solid effort." "The meeting went
+about as well as it could." A verdict, a rating, praise, sympathy. The sender holds views on their
+own work and on other people. You do not know them. State the event and stop.
+
+### A claim about how things usually go
+"That's usually how those referrals come through anyway." "These things take time." This invents
+a fact about the world and puts it in the sender's mouth. Delete it.
+
+### Idiom used as a substitute for voice
+"no great loss", "solid effort", "no dramas", "nothing lost", "worth a shot". Casual idiom is not
+human voice. It is a costume, and it slips the register of a professional email. Voice comes from
+structure, specificity and commitment — never from slang.
+
+The test: could you point at the sentence in the source material the person gave you? If not, cut
+the sentence. A short draft is a better result than a warm one that says something the sender
+never said.
 
 ## Register comes first
 
@@ -136,7 +161,8 @@ formally. The goal is a human voice inside the right register, not a casual one.
 ## Do not touch
 
 - Facts, figures, dates, names, addresses, references.
-- Placeholders such as `[...]`. Leave them for the sender to fill.
+- Placeholders such as `[...]`. Leave them for the sender to fill. The one exception is a sign-off
+  placeholder such as `[Your name]`: delete it with the sign-off.
 - Terms of art. SDA, SIL, OT report and plan manager are the correct words. Plain English does not
   mean renaming things the reader already knows.
 - A quoted passage or a legal clause someone supplied.
@@ -146,10 +172,12 @@ formally. The goal is a human voice inside the right register, not a casual one.
 1. Fix the structure first. Cut the mirrored items, the receipt-echo and the repeated paragraph
    shape. The draft usually gets shorter here.
 2. Rewrite the words.
-3. Ask yourself: "what in this still reads as AI?" Answer in a few short bullets. Check the shape
+3. Read every sentence that carries an opinion, praise or a general claim. Point at the source
+   material for each one. Cut the ones you cannot point at.
+4. Ask yourself: "what in this still reads as AI?" Answer in a few short bullets. Check the shape
    again, not only the wording.
-4. Revise again on that answer.
-5. Return the final version. Return the bullets only if the person asked to see the reasoning.
+5. Revise again on that answer.
+6. Return the final version. Return the bullets only if the person asked to see the reasoning.
 
 Do not return the before and after side by side unless asked. The person wants the text they can
 send.

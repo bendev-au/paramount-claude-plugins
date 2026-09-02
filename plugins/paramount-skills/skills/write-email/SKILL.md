@@ -21,7 +21,13 @@ The audience sets the register. Ask if it is not clear from the request.
 ## 2. Get the facts before you write
 
 Never invent a Paramount fact to fill a sentence — a process, a timeframe, a rate, a role, who
-approves what. If the request does not supply it:
+approves what.
+
+An opinion is a fact here. A verdict on how a meeting went, praise for the reader's work, a claim
+about how referrals usually arrive, how much a setback matters — the sender holds those views, not
+you. Write only the views the person gave you. Report the event and leave the judgment out.
+
+If the request does not supply it:
 
 - Ask the person, or
 - Use the `pdh-brain` plugin's `ask-the-brain` skill if the answer is company knowledge.
@@ -64,7 +70,9 @@ The shape of the email marks it as machine-written faster than any word does.
   clearest tell there is.
 - Keep a verb in every clause. A fragment reads as a meeting note, not as a person writing.
 - The subject line names the thing, not the act of writing. "Royal Avenue vacancy", never
-  "Response to your marketing update". On a reply, keep the Re: line the reader already has.
+  "Response to your marketing update".
+- On a reply, print no subject line at all. The thread already has one. Never write an instruction
+  into the subject field, such as "keep the Re: line".
 
 ## 4. Humanize it
 
@@ -86,9 +94,12 @@ It also checks the shape rules above a second time. Expect it to cut paragraphs,
 - No participant's personal or health information appears unless the recipient needs it and is
   entitled to it. When in doubt, leave it out and say why.
 - The tone matches the audience row above.
-- The last line is content. No sign-off, no name, no contact block.
+- Every opinion and judgment in the draft came from the person. You added none.
+- The last line is content. No sign-off, no name, no contact block. No `[Your name]`.
+- The placeholder list does not contain the sender's name or a sign-off.
 
-Print the subject line, the body, and then any placeholders the person must fill.
+Print the body, and then any placeholders the person must fill. Print a subject line only for a
+new email, never for a reply.
 
 ## Replying to a received message
 
