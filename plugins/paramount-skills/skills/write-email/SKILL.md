@@ -29,7 +29,7 @@ approves what. If the request does not supply it:
 If a fact stays unknown, leave a clear `[...]` placeholder in the draft and list the placeholders
 under it. A placeholder the person fills is safe. A guess that reads as fact is not.
 
-Ask for the sender's name before you write. `[Your name]` in a finished draft is a defect.
+Never ask for the sender's name. The draft carries no signature, so the name is not needed.
 
 ### The substance gate
 
@@ -49,7 +49,9 @@ A placeholder covers a detail. It does not cover the point of the email. Before 
 - Keep it under 200 words unless the content needs more.
 - Use the active voice. Name who does each action.
 - Attachments and links: name them in the body, and say what each one is.
-- Sign off with the sender's name. Ask for it if you do not have it.
+- Write no sign-off and no signature. The draft ends at the last sentence of content. Do not write
+  "Kind regards", "Thanks", "Best", the sender's name, a job title or a contact block. The person
+  adds their own signature when they send the email.
 
 ### Shape
 
@@ -84,6 +86,7 @@ It also checks the shape rules above a second time. Expect it to cut paragraphs,
 - No participant's personal or health information appears unless the recipient needs it and is
   entitled to it. When in doubt, leave it out and say why.
 - The tone matches the audience row above.
+- The last line is content. No sign-off, no name, no contact block.
 
 Print the subject line, the body, and then any placeholders the person must fill.
 
