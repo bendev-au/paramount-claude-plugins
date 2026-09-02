@@ -58,6 +58,11 @@ convenience".
 
 Start with the news or the ask. End when the content ends.
 
+### Sign-offs and signatures
+Delete them. "Kind regards", "Thanks", "Best", the sender's name, a job title, a phone number, a
+contact block. The sender's own mail client adds the signature. A draft that ends at its last
+sentence of content is correct.
+
 ### Chatbot leftovers
 "Certainly", "Of course", "Great question", "I hope this helps", "Let me know if you would like me
 to expand". None of these belong in a document a person sends.
