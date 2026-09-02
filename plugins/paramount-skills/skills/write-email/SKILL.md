@@ -29,6 +29,18 @@ approves what. If the request does not supply it:
 If a fact stays unknown, leave a clear `[...]` placeholder in the draft and list the placeholders
 under it. A placeholder the person fills is safe. A guess that reads as fact is not.
 
+Ask for the sender's name before you write. `[Your name]` in a finished draft is a defect.
+
+### The substance gate
+
+A placeholder covers a detail. It does not cover the point of the email. Before you write:
+
+- Find the main point of the email. If a placeholder would carry it, stop. Ask the person for it.
+  Do not draft the paragraphs around the hole.
+- Count the paragraphs that defer to a later date. If that is most of them, the email has no
+  content. Write the one real fact in three sentences, or tell the person to wait until they have
+  something to send.
+
 ## 3. Write it
 
 - Lead with the ask or the news in the first sentence. No warm-up paragraph.
@@ -39,6 +51,19 @@ under it. A placeholder the person fills is safe. A guess that reads as fact is 
 - Attachments and links: name them in the body, and say what each one is.
 - Sign off with the sender's name. Ask for it if you do not have it.
 
+### Shape
+
+The shape of the email marks it as machine-written faster than any word does.
+
+- Do not answer the other message item by item, in the order it raised them. Choose the one or two
+  items that carry the reply. Say nothing about the rest.
+- Never list the reader's own actions back to them to show you read the message.
+- Do not repeat one paragraph shape. Acknowledge, assess, next step — three times in a row is the
+  clearest tell there is.
+- Keep a verb in every clause. A fragment reads as a meeting note, not as a person writing.
+- The subject line names the thing, not the act of writing. "Royal Avenue vacancy", never
+  "Response to your marketing update". On a reply, keep the Re: line the reader already has.
+
 ## 4. Humanize it
 
 Invoke the `humanize` skill in this plugin with the Skill tool, and pass it the draft. Do this
@@ -48,6 +73,8 @@ register.
 A first draft carries the tells that mark it as machine-written — "I hope this email finds you
 well", stacked hedges, three adjectives where one works. A recipient who spots them trusts the
 sender less. The `humanize` skill removes them and keeps every fact and placeholder unchanged.
+
+It also checks the shape rules above a second time. Expect it to cut paragraphs, not only words.
 
 ## 5. Before you print it
 
@@ -64,6 +91,9 @@ Print the subject line, the body, and then any placeholders the person must fill
 
 Answer every question the message asks. If one cannot be answered yet, say so and give the date
 you will answer it. Quote nothing back — the recipient has their own copy.
+
+Answering a question is not the same as writing a paragraph about it. Two questions can share one
+sentence. A statement that needs no reply gets no reply.
 
 ## Chasing a reply
 

@@ -8,7 +8,47 @@ description: Rewrite text so it reads as if a person wrote it, not a model. Use 
 You rewrite a draft so a reader cannot tell a model wrote it. Keep the meaning. Keep every fact,
 date, name and number exactly as it was — this is a rewrite, not a rethink.
 
+## Structure comes before words
+
+Fix the shape of the draft first. A draft can contain none of the words below and still read as
+machine-written, because the shape gives it away. Word-level cleanup cannot repair a bad shape.
+
+### Point-by-point mirroring
+A model answers every item the other message raised, in the order it raised them, one paragraph
+each. A person answers what matters and says nothing about the rest. Choose the one or two items
+that carry the reply. Drop the others.
+
+### Receipt-echo
+"Good to see the vacancy across the 29 noticeboards and your own page, and the brochure out to
+your network." This lists the reader's own work back to them to prove you read it. Delete it. If
+one item needs a response, respond to that item.
+
+### Repeated paragraph shape
+Acknowledge, assess, next step. Then again. Then again. Vary the shape, or merge the paragraphs.
+If two paragraphs both end in a next step, they are one paragraph.
+
+### Note-style fragments
+"Noted on the liaison team." "The brochure out to your network." A clause without a verb reads as
+a meeting note, not as speech. Keep a verb in every clause. Terse is not the same as human.
+
+### Contractions
+Speech contracts. Write "they've got the details", not "they have the details". Do not apply
+contractions evenly across the draft — a person contracts some and not others.
+
+### Meta subject lines
+"Response to your marketing update" describes the act of replying. Name the thing instead:
+"Royal Avenue vacancy". On a reply, keep the Re: line the reader already has.
+
+### A draft that says nothing
+Count the paragraphs that defer to a later date. If that is most of them, the draft has no
+content. Send the one real fact in three sentences, or do not send yet. Politeness around a hole
+still reads as a hole.
+
 ## The tells
+
+### Reply filler
+"Noted on", "no concern about the timing", "we'll leave that with them for now", "fold in",
+"that helps too", "Good to see". Each one fills a line and carries no information.
 
 ### Openers and closers that carry no information
 Cut these on sight: "I hope this email finds you well", "I hope you are well", "I wanted to reach
@@ -98,10 +138,13 @@ formally. The goal is a human voice inside the right register, not a casual one.
 
 ## Process
 
-1. Rewrite the draft.
-2. Ask yourself: "what in this still reads as AI?" Answer in a few short bullets.
-3. Revise again on that answer.
-4. Return the final version. Return the bullets only if the person asked to see the reasoning.
+1. Fix the structure first. Cut the mirrored items, the receipt-echo and the repeated paragraph
+   shape. The draft usually gets shorter here.
+2. Rewrite the words.
+3. Ask yourself: "what in this still reads as AI?" Answer in a few short bullets. Check the shape
+   again, not only the wording.
+4. Revise again on that answer.
+5. Return the final version. Return the bullets only if the person asked to see the reasoning.
 
 Do not return the before and after side by side unless asked. The person wants the text they can
 send.
